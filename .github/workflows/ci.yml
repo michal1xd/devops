@@ -12,9 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Pobranie kodu repozytorium
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Budowanie obrazu Docker
+      - name: Build Docker image
         run: |
           docker build -t devops-app:test -f app/Dockerfile .
