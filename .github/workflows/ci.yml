@@ -1,19 +1,21 @@
-name: CI Build & Push to GCP Artifact registry
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 env:
   GAR_LOCATION: europe-central2-docker.pkg.dev
   PROJECT_ID: seraphic-hawk-505119-h3
   REPOSITORY: devops-app-repo
   IMAGE_NAME: devops-app
+  VM_NAME: devops-app-vm
+  VM_ZONE: europe-central2-a
 
 jobs:
-  build-and-push:
+  build-push-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,3 +41,24 @@ jobs:
           tags: |
             ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name != 'pull_request'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        if: github.event_name != 'pull_request'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy Application to Compute Engine VM
+        if: github.event_name != 'pull_request'
+        run: |
+          gcloud compute ssh ${{ env.VM_NAME }} --zone=${{ env.VM_ZONE }} --quiet --command="
+            sudo gcloud auth configure-docker ${{ env.GAR_LOCATION }} --quiet && \
+            sudo docker pull ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest && \
+            sudo docker stop devops-app || true && \
+            sudo docker rm devops-app || true && \
+            sudo docker run -d -p 8080:8080 --name devops-app --restart always ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+          "
