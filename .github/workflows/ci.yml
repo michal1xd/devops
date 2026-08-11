@@ -57,6 +57,7 @@ jobs:
         run: |
           ACCESS_TOKEN=$(gcloud auth print-access-token)
           gcloud compute ssh ${{ env.VM_NAME }} --zone=${{ env.VM_ZONE }} --quiet --command="
+            sudo rm -f /root/.docker/config.json
             echo \"$ACCESS_TOKEN\" | sudo docker login -u oauth2accesstoken --password-stdin ${{ env.GAR_LOCATION }}
             sudo docker stop devops-app 2>/dev/null || true
             sudo docker rm devops-app 2>/dev/null || true
