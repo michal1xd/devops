@@ -56,9 +56,9 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           gcloud compute ssh ${{ env.VM_NAME }} --zone=${{ env.VM_ZONE }} --quiet --command="
-            sudo gcloud auth configure-docker ${{ env.GAR_LOCATION }} --quiet && \
-            sudo docker pull ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest && \
-            sudo docker stop devops-app || true && \
-            sudo docker rm devops-app || true && \
+            gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin ${{ env.GAR_LOCATION }}
+            sudo docker stop devops-app || true
+            sudo docker rm devops-app || true
+            sudo docker pull ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
             sudo docker run -d -p 8080:8080 --name devops-app --restart always ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
           "
